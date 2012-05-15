@@ -65,9 +65,9 @@ install:
 	install -m644 *.pm baselibs_global*.conf lxc.conf $(DESTDIR)$(pkglibdir)
 	install -m644 configs/* $(DESTDIR)$(pkglibdir)/configs
 	install -m644 build.1 $(DESTDIR)$(man1dir)
-	ln -sf $(pkglibdir)/build $(DESTDIR)$(bindir)/build
-	ln -sf $(pkglibdir)/vc    $(DESTDIR)$(bindir)/buildvc
-	ln -sf $(pkglibdir)/unrpm $(DESTDIR)$(bindir)/unrpm
+	ln -sf ../lib/build/build $(DESTDIR)$(bindir)/build
+	ln -sf ../lib/build//vc    $(DESTDIR)$(bindir)/buildvc
+	ln -sf ../lib/build//unrpm $(DESTDIR)$(bindir)/unrpm
 
 # Allow initvm to be packaged seperately from the rest of build.  This
 # is useful because it is distributed as a static binary package (e.g.
