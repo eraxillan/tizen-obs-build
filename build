@@ -317,6 +317,7 @@ cleanup_and_exit () {
     trap EXIT
     test -z "$1" && set 0
     rm -f $BUILD_ROOT/exit
+    rm -f $BUILD_ROOT/.repo.config
     if test "$1" -eq 1 -a -x /bin/df ; then
         # okay, it failed, but maybe because disk space?
 	if df $BUILD_ROOT 2>/dev/null | grep -q "100%"; then
@@ -757,6 +758,24 @@ mkdir_build_root()
 linux64()
 {
 	perl -e 'syscall('$PERSONALITY_SYSCALL', 0); exec(@ARGV) || die("$ARGV[0]: $!\n")' "$@"
+}
+
+hide_passwords()
+{
+    local i j
+    r=()
+    rm -f $BUILD_ROOT/.repo.config
+    for i in "${repos[@]}"; do
+        if [ "$i" == "--repo" -o "$i" == "--repository" ]; then
+            r=("${r[@]}" "$i")
+        else
+            echo $i |grep -E "^http[s]?:\/\/[^\/]*\/?" >/dev/null && echo $i >> $BUILD_ROOT/.repo.config
+            j=$(echo $i | sed -e "s#://[^@]*@#://#")
+            r=("${r[@]}" "$j")
+        fi
+    done
+    repos=("${r[@]}")
+    echo ${repos[@]}
 }
 
 check_for_ppc()
@@ -1405,6 +1424,7 @@ if test -z "$RUNNING_IN_VM" ; then
 fi
 
 mkdir_build_root
+hide_passwords
 
 if [ "$BUILD_ROOT" = / ]; then
     read dummy dummy browner dummy < <(ls -ld /)
