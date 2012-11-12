@@ -873,7 +873,7 @@ while test -n "$1"; do
       *-no*init)
 	DO_INIT=false
       ;;
-      *-no*build)
+      *-no-build)
 	DO_BUILD=false
       ;;
       *-no*checks)
