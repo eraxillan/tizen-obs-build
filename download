@@ -10,6 +10,7 @@ use LWP::UserAgent;
 use URI;
 use File::Path;
 use File::Basename;
+use Net::FTP;
 
 use strict;
 
@@ -44,6 +45,7 @@ for my $url (@ARGV) {
         open FILE, "<", $ENV{BUILD_ROOT} . "/.repo.config" or die $!;
         while (<FILE>) {
             next if ($_ !~ /^http[s]?:\/\/([^\/]*)\/?/);
+            next if ($_ !~ /^ftp[s]?:\/\/([^\/]*)\/?/);
             chomp($_);
             my $hidden = URI->new($_);
             my $ui = $hidden->userinfo;
@@ -62,16 +64,35 @@ for my $url (@ARGV) {
     }
   }
   $ua->env_proxy  if $url->scheme ne 'https';
-  my $dest = "$dir/".basename($url->path);
+  my $dest = "$dir/".basename($url->path).".tmp";
   unlink($dest);	# just in case
-  my $retry = 3;
-  while ($retry--) {
-    my $res = $ua->mirror($url, $dest);
-    last if $res->is_success;
-    # if it's a redirect we probably got a bad mirror and should just retry
-    die "reqesting " . hide_passwd($original) . " failed: ".$res->status_line."\n" unless $retry && $res->previous;
-    warn "retrying " . hide_passwd($original) . "\n";
+
+  if ($url->scheme eq "ftp") {
+    my $ftp = Net::FTP->new($url->host, Debug => 0, Passive => 1, Port => $url->port)
+      or die "Cannot connect to FTP server: $@";
+
+    $ftp->login("anonymous", '')
+      or die "Cannot login to FTP server: ", $ftp->message;
+
+    $ftp->binary();
+
+    $ftp->get($url->path, $dest)
+      or die "GET method from FTP server failed: ", $ftp->message;
+
+    $ftp->quit;
+  } else {
+    my $retry = 3;
+    while ($retry--) {
+      my $res = $ua->mirror($url, $dest);
+      last if $res->is_success;
+      # if it's a redirect we probably got a bad mirror and should just retry
+      die "requesting " . hide_passwd($original) . " failed: ".$res->status_line."\n" unless $retry && $res->previous;
+      warn "retrying " . hide_passwd($original) . "\n";
+    }
   }
+
+  rename($dest, "$dir/".basename($url->path));
+  print STDERR "File downloaded: ", "$dir/".basename($url->path), "\n";
 }
 
 # vim:sw=2
